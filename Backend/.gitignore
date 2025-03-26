@@ -10,6 +10,10 @@
 
 # production
 /build
+# environment files
+.env
+.env.*
+!.env.example
 
 # misc
 .DS_Store

@@ -18,6 +18,7 @@ import Navbar from "./components/Navbar";
 import AdminDashboard from "./components/adminhome.js";
 import AdminNavBar from "./components/adminnav.js";
 import AdminIssueDetails from "./components/adminproblemDetail.js";
+import JitsiMeeting from "./components/JitsiMeeting";
 //require("dotenv").config();
 
 // let payload = {
@@ -36,7 +37,7 @@ function App() {
   const [islogedin, setlogin] = useState(false);
   const [allComplaints, setAllComplaints] = useState([]);
   const PrivateRoute = ({ element }) => {
-    return islogedin ? element : <Navigate to="/Login" replace/>
+    return islogedin ? element : <Navigate to="/Login" replace />
   }
   const handleFormSubmit = (formData) => {
     setAllComplaints((prev) => [...prev, { ...formData, id: Date.now() }]);
@@ -116,7 +117,7 @@ function App() {
           </>
 
         } />
-         
+
         <Route path="/Location" element={
 
           <>
@@ -155,17 +156,17 @@ function App() {
 
         } />
 
-    
+
 
         <Route path="/Connect" element={
-
           <>
-            <AdminNavBar islogedin={islogedin} setlogin={setlogin} />
+            <AdminNavBar />
             <Connect />
-
           </>
-
         } />
+
+        {/* Jitsi Meeting Page */}
+        <Route path="/Jitsi/:roomName" element={<JitsiMeeting />} />
 
         <Route path="/status" element={<Status allComplaints={allComplaints} />} />
 

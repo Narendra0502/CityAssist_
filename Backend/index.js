@@ -1,7 +1,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
-//const crypto = require("crypto");
+const crypto = require("crypto");
 const session = require('express-session');
 const MongoDBStore = require('connect-mongodb-session')(session);
 const AuthRouter = require('./Routes/AuthRouter');
@@ -26,29 +26,28 @@ app.use(cors({
   exposedHeaders: ['set-cookie'] // ✅ Allow session cookies in frontend
 }));
 
-// app.post("/generateSignature", (req, res) => {
-//   try {
-//       const { meetingNumber, role } = req.body;
-//       const timestamp = new Date().getTime() - 30000;
-//       const msg = Buffer.from(`${process.env.ZOOM_API_KEY}${meetingNumber}${timestamp}${role}`).toString("base64");
-//       const hash = crypto.createHmac("sha256", process.env.ZOOM_API_SECRET).update(msg).digest("base64");
-//       const signature = Buffer.from(`${process.env.ZOOM_API_KEY}.${meetingNumber}.${timestamp}.${role}.${hash}`).toString("base64");
 
-//       res.json({ signature });
-//   } catch (error) {
-//       console.error("Error generating Zoom signature:", error);
-//       res.status(500).json({ error: "Failed to generate signature" });
-//   }
-// });
-// app.use((req, res, next) => {
-//   res.header('Access-Control-Allow-Credentials', 'true');
-//   next();
-// });
 
 // ✅ Use Express JSON Parser
 app.use(express.json());
-app.use(bodyParser.json()); // Not necessary but kept for compatibility
+app.use(bodyParser.json()); 
 
+app.post("/api/jitsi/meeting", (req, res) => {
+  try {
+      const { roomName } = req.body;
+      
+      // Generate a unique meeting room if not provided
+      const uniqueRoom = roomName || `cityassist-${Date.now()}`;
+      
+      // Jitsi Meet Public Instance
+      const jitsiURL = `https://meet.jit.si/${uniqueRoom}`;
+
+      res.json({ meetingURL: jitsiURL });
+  } catch (error) {
+      console.error("Error generating Jitsi meeting URL:", error);
+      res.status(500).json({ error: "Failed to generate meeting URL" });
+  }
+});
 
 
 app.get('/ping', (req, res) => res.send('PONG'));
