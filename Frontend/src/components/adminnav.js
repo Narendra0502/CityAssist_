@@ -1,0 +1,86 @@
+import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { 
+  HiHome, 
+  HiLocationMarker, 
+  HiCheckCircle, 
+  HiXCircle, 
+  HiClipboardCheck, 
+  HiUserGroup, 
+  HiLogout 
+} from 'react-icons/hi';
+
+const AdminNavBar = () => {
+  const location = useLocation();
+
+  // Navigation items with icons and paths
+  const navItems = [
+    { path: "/adminhome", label: "Home", icon: HiHome },
+    { path: "/Location", label: "Location", icon: HiLocationMarker },
+    { path: "/Accepted", label: "Accepted", icon: HiCheckCircle },
+    { path: "/Rejected", label: "Rejected", icon: HiXCircle },
+    { path: "/Completed", label: "Completed", icon: HiClipboardCheck },
+    { path: "/Connect", label: "Connect", icon: HiUserGroup }
+  ];
+
+  return (
+    <header className="bg-white shadow-md px-6 py-3 sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto flex justify-between items-center">
+        {/* Logo and Title */}
+        <div className="flex items-center space-x-4">
+          <img 
+            src="/logo.png" 
+            alt="CityAssist Logo" 
+            className="h-10 w-10 object-contain"
+          />
+          <h1 className="text-xl font-bold text-blue-800">
+            City Assist Admin Dashboard
+          </h1>
+        </div>
+
+        {/* Navigation Links */}
+        <nav className="flex items-center space-x-2">
+          {navItems.map((item) => (
+            <Link 
+              key={item.path} 
+              to={item.path}
+              className={`
+                flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-300
+                ${location.pathname === item.path 
+                  ? 'bg-blue-600 text-white' 
+                  : 'text-blue-700 hover:bg-blue-100 hover:text-blue-800'}
+              `}
+            >
+              <item.icon 
+                className={`w-6 h-6 ${
+                  location.pathname === item.path 
+                    ? 'text-white' 
+                    : 'text-blue-600 group-hover:text-blue-800'
+                }`} 
+              />
+              <span className="hidden md:inline text-sm font-medium">{item.label}</span>
+            </Link>
+          ))}
+
+          {/* Logout Button */}
+          <button 
+            className="
+              flex items-center space-x-2 
+              bg-red-500 hover:bg-red-600 
+              text-white 
+              px-4 py-2 
+              rounded-lg 
+              transition-colors 
+              group
+            "
+          >
+            <HiLogout className="w-6 h-6 group-hover:rotate-12 transition-transform" />
+            <span className="hidden md:inline text-sm font-medium">Logout</span>
+          </button>
+        </nav>
+      </div>
+    </header>
+  );
+};
+
+export default AdminNavBar;
