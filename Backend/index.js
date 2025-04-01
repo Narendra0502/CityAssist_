@@ -55,4 +55,5 @@ app.get('/ping', (req, res) => res.send('PONG'));
 app.use('/auth', AuthRouter);
 app.use('/admin', AdminRouter);
 
+
 app.listen(PORT, () => console.log(`Server is running on ${PORT}`));

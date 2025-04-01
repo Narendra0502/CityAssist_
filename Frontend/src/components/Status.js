@@ -5,7 +5,7 @@ import Card from "./Card";
 import { useNavigate } from "react-router-dom";
 
 const Status = () => {
-  const [complain, setComplain] = useState([]);
+  const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
@@ -19,7 +19,10 @@ const Status = () => {
           navigate("/login");
           return;
         }
-        setComplain(data.data || []);
+        const uniqueComplaints = Array.from(
+          new Map(data.data.map(item => [item._id, item])).values()
+        );
+        setComplaints(data.data || []);
         if (!data.success) {
           setError(data.message);
         }
@@ -62,17 +65,8 @@ const Status = () => {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5 }}
         >
-          {complain.length > 0 ? (
-            complain.map((complaint) => (
-              <motion.div
-                key={complaint._id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: 0.1 }}
-              >
-                <Card complain={complaint} />
-              </motion.div>
-            ))
+ {complaints.length > 0 ? (
+            <Card complaints={complaints} />
           ) : (
             <motion.h1
               className="text-center text-lg text-gray-700 col-span-full"

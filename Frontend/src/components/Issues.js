@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import Camera from './Camera';
+// import nsfwjs from "nsfwjs";
+// import axios from "axios";
+
 
 const DEPARTMENTS = [
   { value: '', label: 'Select Department' },
@@ -113,11 +116,19 @@ const Issues = () => {
     });
 
     try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        toast.error('Please login to submit an issue');
+        return;
+      }
       const response = await fetch('http://localhost:5000/auth/Issues', {
         method: 'POST',
-        body: submissionData
+      headers: {
+        'Authorization': `Bearer ${token}` // Add the authorization header
+      },
+      body: submissionData
       });
-
+      if (!response.ok) throw new Error('Failed to submit issue');
       const result = await response.json();
       if (result.success) {
         toast.success('Complaint registered successfully');

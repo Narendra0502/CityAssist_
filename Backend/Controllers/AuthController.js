@@ -53,7 +53,7 @@ const signup = async (req, res) => {
         const token = jwt.sign(
             { userId: newUser._id, email: newUser.email, role: newUser.role },
             process.env.JWT_SECRET || "yourSecretKey",
-            { expiresIn: "7d" } // Token expires in 7 days
+            { expiresIn:"7d" } // 
         );
 
         res.status(201).json({
@@ -102,9 +102,12 @@ const login = async (req, res) => {
                 .json({ message: errorMsg, success: false });
         }
         const jwtToken = jwt.sign(
-            { email: user.email, _id: user._id, role: user.role },
+            { email: user.email, _id: user._id, role: user.role ,city:user.city},
             process.env.JWT_SECRET || "yourSecretKey",
-            { expiresIn: '7d' }
+    { 
+        expiresIn: '7d', // Set to 7 days
+        algorithm: 'HS256' // Specify algorithm
+    }
         )
         console.log("Login Response for jwttoken:", { jwtToken, user });
 
@@ -166,6 +169,11 @@ const createIssue = async (req, res) => {
             remark,
             CompleteDate,
             completefile,
+            upvotes: 0,    
+            downvotes: 0,
+            votedBy: [],    
+            votes: 0,
+            priority: 0,
             image:imageurl
         });
 
@@ -177,7 +185,102 @@ const createIssue = async (req, res) => {
         res.status(500).json({ message: 'Internal server error', success: false });
     }
 };
+const upvoteIssue = async (req, res) => {
+    try {
+        const { issueId } = req.params;
+        const { voteType,upvotes } = req.body; // Add this line
+        const userId = req.user._id; // From auth middleware
 
+        const issue = await IssueModel.findById(issueId);
+        if (!issue) {
+            console.log("Issue not found in upvote");
+            return res.status(404).json({ 
+                success: false, 
+                message: "Issue not found" 
+            });
+        }
+
+        // Check if user has already voted
+        const existingVoteIndex = issue.votedBy.findIndex(vote => 
+            vote.userId.toString() === userId.toString()
+        );
+
+        if (existingVoteIndex>=0) {
+            const existingVote = issue.votedBy[existingVoteIndex];
+            if (existingVote.voteType === "upvote") {
+                // Remove vote if already upvoted
+                issue.upvotes = Math.max(0, issue.upvotes - 1);
+                issue.votedBy.splice(existingVoteIndex, 1);
+            } else {
+                // Change downvote to upvote
+                issue.upvotes = Math.max(0, issue.upvotes + 1);
+                issue.upvotes += 1;
+                existingVote.voteType = 'upvote';
+            }
+        } else {
+            // Add new upvote
+            issue.upvotes += 1;
+            issue.votedBy.push({ userId, voteType: 'upvote' });
+        }
+
+        // Update priority based on total votes
+        issue.priority = issue.upvotes - issue.downvotes;
+        
+        await issue.save();
+        console.log("upvoted successfully"),  
+        res.status(200).json({
+            
+            success: true,
+            message: "Vote updated successfully",
+            votes: issue.upvotes
+        });
+    } catch (error) {
+        console.error("Upvote nahi hua error:", error);
+        res.status(500).json({
+            success: false,
+            message: "Failed to update vote"
+        });
+    }
+};
+
+const downvoteIssue = async (req, res) => {
+    try {
+        const { issueId } = req.params;
+        const { voteType,downvotes } = req.body; // Add this line
+        const userId = req.user._id; // From auth middleware
+
+        const issue = await IssueModel.findById(issueId);
+        if (!issue) return res.status(404).json({ message: "Issue not found", success: false });
+        const existingVoteIndex = issue.votedBy.findIndex(vote => 
+            vote.userId.toString() === userId.toString()
+        );
+         if (existingVoteIndex >= 0) {
+            const existingVote = issue.votedBy[existingVoteIndex];
+            if (existingVote.voteType === 'downvote') {
+                // Remove downvote
+                issue.downvotes = Math.min(issue.downvotes + 1, issue.votedBy.length);
+                issue.votedBy.splice(existingVoteIndex, 1);
+            } else {
+                // Change upvote to downvote
+                issue.downvotes = Math.max(0, issue.downvotes - 1);
+                existingVote.voteType = 'downvote';
+            }
+        } else {
+            // Add new downvote if votes > 0
+            if (issue.downvotes > 0) {
+                issue.downvotes += 1;
+                issue.votedBy.push({ userId, voteType: 'downvote' });
+            }
+        }
+        //issue.votes -= 1;
+        issue.priority = Math.max(0, issue.upvotes - issue.downvotes); // Prevent priority from going negative
+        await issue.save();
+       console.log("downvoted successfully");
+        res.status(200).json({ message: "Downvote successful", success: true, votes: issue.downvotes });
+    } catch (err) {
+        res.status(500).json({ message: "Internal server error", success: false });
+    }
+};
 
 const getAllIssues = async (req, res) => {
     try {
@@ -186,16 +289,92 @@ const getAllIssues = async (req, res) => {
             return res.status(400).json({ error: "email to reh hi gaya bhai picheee " });
         }
         const useremail=req.user.email;
-        const data = await IssueModel.find({email:useremail});
+        const data = await IssueModel.find({ email: useremail }).sort({ priority: -1 });
         res.status(200).json({ success: true, data });
-        console.log("get all the data>>>",data);
+        console.log("get all the data in get isssues >>>",data);
     } catch (err) {
         console.error("Error fetching controller main issues:", err);
         res.status(500).json({ success: false, message: "Internal server error" });
         console.log("error in controller main fetching data>>>",err);
     }
 };
+// Update the existing getPriorityIssues function
+// Update getPriorityIssues to handle req and res
+const getPriorityIssues = async (req, res) => {
+    try {
+        const issues = await IssueModel.find()
+            .select('title description status upvotes downvotes priority image address city createdAt email votedBy')
+            .sort({ priority: -1, createdAt: -1 })
+            .limit(10);
 
+        console.log("Retrieved priority issues:", issues);
+
+        if (!issues || issues.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "No issues found"
+            });
+        }
+
+        // If user is authenticated, include their vote status
+        const userId = req.user._id;
+        const issuesWithVoteStatus = issues.map(issue => ({
+            ...issue.toObject(),
+            userVote: issue.votedBy.find(vote => 
+                vote.userId.toString() === userId.toString()
+            )?.voteType || null
+        }));
+
+        res.json({
+            success: true,
+            message: "City updates fetched successfully",
+            issues: issuesWithVoteStatus
+        });
+
+    } catch (error) {
+        console.error("Error in getPriorityIssues:", error);
+        res.status(500).json({
+            success: false,
+            message: "Internal Server Error",
+            error: error.message
+        });
+    }
+};
+
+const updateIssue = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { upvotes, downvotes, priority } = req.body;
+
+        const issue = await IssueModel.findById(id);
+        if (!issue) {
+            return res.status(404).json({
+                success: false,
+                message: "Issue not found"
+            });
+        }
+
+        // Only update specified fields
+        if (typeof upvotes === 'number') issue.upvotes = upvotes;
+        if (typeof downvotes === 'number') issue.downvotes = downvotes;
+        if (typeof priority === 'number') issue.priority = priority;
+
+        await issue.save();
+
+        res.json({
+            success: true,
+            message: "Issue updated successfully",
+            issue: issue.toObject()
+        });
+
+    } catch (error) {
+        console.error("Update error:", error);
+        res.status(500).json({
+            success: false,
+            message: "Failed to update issue"
+        });
+    }
+};
 
 
 module.exports={
@@ -203,5 +382,9 @@ module.exports={
     login,
     createIssue,
     getAllIssues,
+    upvoteIssue,
+    downvoteIssue,
+    getPriorityIssues,
+    updateIssue
     
 }

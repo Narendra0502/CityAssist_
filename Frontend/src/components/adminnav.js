@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import logo from '../assessts/cityassist6.0.jpg'; // Adjust the path as necessary
 import { 
   HiHome, 
   HiLocationMarker, 
@@ -29,9 +30,9 @@ const AdminNavBar = () => {
         {/* Logo and Title */}
         <div className="flex items-center space-x-4">
           <img 
-            src="/logo.png" 
+            src={logo}
             alt="CityAssist Logo" 
-            className="h-10 w-10 object-contain"
+            className="h-15 w-20 object-contain"
           />
           <h1 className="text-xl font-bold text-blue-800">
             City Assist Admin Dashboard

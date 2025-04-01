@@ -46,6 +46,8 @@ const AdminDashboard = () => {
         }
 
         const data = await response.json();
+        const sortedData = Array.isArray(data) ? 
+        data.sort((a, b) => (b.priority || 0) - (a.priority || 0)) : [];
         setIssues(Array.isArray(data) ? data : []);
         setError(null);
       } catch (error) {
@@ -57,6 +59,8 @@ const AdminDashboard = () => {
     };
 
     fetchIssues();
+    const intervalId = setInterval(fetchIssues, 30000);
+    return () => clearInterval(intervalId);
   }, [navigate]);
 
   // Count issues by status
@@ -76,6 +80,7 @@ const AdminDashboard = () => {
   const sortedIssues = pendingIssues.sort((a, b) => {
     if (sortBy === "newest") return new Date(b.createdAt) - new Date(a.createdAt);
     if (sortBy === "oldest") return new Date(a.createdAt) - new Date(b.createdAt);
+    if (sortBy === "priority") return (b.priority || 0) - (a.priority || 0);
     return 0;
   });
 
@@ -140,6 +145,7 @@ const AdminDashboard = () => {
               >
                 <option value="newest">Sort by Newest</option>
                 <option value="oldest">Sort by Oldest</option>
+                <option value="priority">Sort by Priority</option>
               </select>
             </div>
 
@@ -164,10 +170,20 @@ const AdminDashboard = () => {
             {/* Issue Cards (Only Pending Issues) */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {sortedIssues.length > 0 ? (
-                sortedIssues
-                  .filter((issue) => issue.title.toLowerCase().includes(searchTerm.toLowerCase()))
-                  .map((issue) => <IssueCard key={issue._id} issue={issue} />)
-              ) : (
+              sortedIssues
+                .filter((issue) => issue.title.toLowerCase().includes(searchTerm.toLowerCase()))
+                .map((issue) => (
+                  <IssueCard 
+                    key={issue._id} 
+                    issue={{
+                      ...issue,
+                      upvotes: issue.upvotes || 0,
+                      downvotes: issue.downvotes || 0,
+                      priority: issue.priority || 0
+                    }}
+                  />
+                ))
+            ) : (
                 <div className="col-span-full text-center py-10 bg-blue-50 rounded-lg">
                   <p className="text-blue-600 text-lg">No pending issues found.</p>
                 </div>

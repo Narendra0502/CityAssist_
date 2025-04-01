@@ -1,17 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { IoIosEye, IoIosEyeOff } from 'react-icons/io';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 
-const AdminLogin = ({ setlogin }) => {
+const AdminLogin = ({ setLogin }) => {
     const navigate = useNavigate();
+    
     const [formData, setFormData] = useState({
         email: "",
         password: "",
         role: "admin"
     });
 
+    const [verificationCode, setVerificationCode] = useState("");
+    const [generatedCode, setGeneratedCode] = useState("");
     const [showPassword, setShowPassword] = useState(false);
+
+    // Generate a random 4-digit verification code on component mount
+    useEffect(() => {
+        const code = Math.floor(1000 + Math.random() * 9000).toString();
+        setGeneratedCode(code);
+    }, []);
 
     const handleInputChange = (event) => {
         const { name, value } = event.target;
@@ -19,10 +28,14 @@ const AdminLogin = ({ setlogin }) => {
             ...prev,
             [name]: value
         }));
-    }
+    };
+
+    const handleVerificationChange = (event) => {
+        setVerificationCode(event.target.value);
+    };
 
     const handleRoleSelection = (role) => {
-        if(role === "user") {
+        if (role === "user") {
             navigate("/login");
         } else {
             setFormData(prev => ({
@@ -30,10 +43,17 @@ const AdminLogin = ({ setlogin }) => {
                 role: "admin"
             }));
         }
-    }
+    };
 
     const handleSubmit = async (event) => {
         event.preventDefault();
+
+        // Check if verification code matches
+        if (verificationCode !== generatedCode) {
+            toast.error("Invalid verification code");
+            return;
+        }
+
         try {
             const response = await fetch('http://localhost:5000/admin/adminlogin', {
                 method: 'POST',
@@ -45,6 +65,8 @@ const AdminLogin = ({ setlogin }) => {
             });
 
             const data = await response.json();
+            console.log("Response:", response);
+            console.log("Data:", data);
 
             if (!response.ok) {
                 toast.error(data.message || 'Login failed');
@@ -53,14 +75,14 @@ const AdminLogin = ({ setlogin }) => {
 
             localStorage.setItem('token', data.token);
             localStorage.setItem('user', JSON.stringify(data.user));
-            setlogin(true);
+            setLogin(true);
             toast.success('Welcome to CityAssist! Login Successful');
             navigate('/adminhome');
         } catch (error) {
             console.error('Login error:', error);
             toast.error('Something went wrong! Try again.');
         }
-    }
+    };
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-white px-4 py-12">
@@ -103,6 +125,17 @@ const AdminLogin = ({ setlogin }) => {
                             Admin
                         </button>
                     </div>
+
+                    {/* Verification Code Display */}
+                    <p className="text-center font-bold text-lg">Verification Code: {generatedCode}</p>
+                    <input
+                        type="text"
+                        placeholder="Enter 4-digit code"
+                        value={verificationCode}
+                        onChange={handleVerificationChange}
+                        required
+                        className="w-full px-4 py-2 border border-[#E5E5E5] rounded-lg text-[#333333] focus:outline-none focus:ring-2 focus:ring-[#2F80ED] focus:border-transparent transition-all duration-300"
+                    />
 
                     {/* Email Input */}
                     <div>
@@ -159,15 +192,16 @@ const AdminLogin = ({ setlogin }) => {
                         Sign In
                     </button>
 
-                    {/* Forgot Password */}
-                    <div className="text-center">
-                        <a 
-                            href="#" 
-                            className="text-sm text-[#2F80ED] hover:text-[#1A67C9] transition-colors"
+                    {/* Signup Link for New Users */}
+                    <p className="text-center mt-4 text-sm text-[#666666]">
+                        New user?{" "}
+                        <span 
+                            className="text-[#2F80ED] font-medium cursor-pointer hover:underline"
+                            onClick={() => navigate('/adminsignup')}
                         >
-                            Forgot password?
-                        </a>
-                    </div>
+                            Sign up
+                        </span>
+                    </p>
                 </form>
             </div>
         </div>

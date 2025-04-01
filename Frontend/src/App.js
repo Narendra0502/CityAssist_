@@ -19,6 +19,7 @@ import AdminDashboard from "./components/adminhome.js";
 import AdminNavBar from "./components/adminnav.js";
 import AdminIssueDetails from "./components/adminproblemDetail.js";
 import JitsiMeeting from "./components/JitsiMeeting";
+import Cityupdate from "./components/Cityupdate.js";
 //require("dotenv").config();
 
 // let payload = {
@@ -39,9 +40,10 @@ function App() {
   const PrivateRoute = ({ element }) => {
     return islogedin ? element : <Navigate to="/Login" replace />
   }
-  const handleFormSubmit = (formData) => {
-    setAllComplaints((prev) => [...prev, { ...formData, id: Date.now() }]);
-  };
+  // const handleFormSubmit = (formData) => {
+  //   setAllComplaints((prev) => [...prev, { ...formData, id: Date.now() }]);
+  // onSubmit={handleFormSubmit}
+  // };
 
   return (
     <div>
@@ -59,11 +61,18 @@ function App() {
 
 
         } />} />
+          <Route path="/update" element={
+          <>
+            <Navbar islogedin={islogedin} setlogin={setlogin} />
+            <Cityupdate setlogin={setlogin} />
+          </>
+        }
+        />
 
         <Route path="/issues" element={
           <>
             <Navbar islogedin={islogedin} setlogin={setlogin} />
-            <Issues onSubmit={handleFormSubmit} />
+            <Issues  />
           </>
         }
 
@@ -102,7 +111,7 @@ function App() {
         <Route path="/adminlogin" element={
           <>
             <Navbar islogedin={islogedin} setlogin={setlogin} />
-            <AdminLogin setlogin={setlogin} />
+            <AdminLogin setLogin={setlogin} />
           </>
         }
         />

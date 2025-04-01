@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Menu, X, LogOut, Home, FileText, Activity } from 'lucide-react'
+import logo from '../assessts/cityassist6.0.jpg'; 
+import { Menu,BellIcon, X, LogOut, Home, FileText, Activity } from 'lucide-react'
 
 const Navbar = ({ islogedin, setlogin }) => {
   const navigate = useNavigate();
@@ -46,7 +47,12 @@ const Navbar = ({ islogedin, setlogin }) => {
     >
       <div className="container mx-auto px-4 py-3 flex justify-between items-center">
         {/* Logo */}
-        <Link to="/" className="flex items-center space-x-2">
+        <img 
+                   src={logo}
+                   alt="CityAssist Logo" 
+                   className="h-15 w-20"
+                 />
+        <Link to="/" className="space-x-2">
           <span className="text-2xl font-bold text-blue-700">CityAssist</span>
         </Link>
 
@@ -58,6 +64,13 @@ const Navbar = ({ islogedin, setlogin }) => {
           >
             <Home className="mr-2 w-5 h-5 text-gray-500 group-hover:text-blue-600" />
             Home
+          </Link>
+          <Link 
+            to="/update" 
+            className="flex items-center text-gray-700 hover:text-blue-600 transition-colors group"
+          >
+            <BellIcon className="mr-2 w-5 h-5 text-gray-500 group-hover:text-blue-600" />
+            CityUpdates
           </Link>
           <Link 
             to="/issues" 
@@ -113,6 +126,14 @@ const Navbar = ({ islogedin, setlogin }) => {
               >
                 <Home className="mr-3 w-5 h-5 text-gray-500" />
                 Home
+              </Link>
+              <Link 
+                to="/update" 
+                className="flex items-center py-2 border-b border-gray-100"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                <BellIcon className="mr-3 w-5 h-5 text-gray-500" />
+                CityUpdates
               </Link>
               <Link 
                 to="/issues" 

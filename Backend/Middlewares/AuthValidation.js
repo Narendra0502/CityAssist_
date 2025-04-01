@@ -41,7 +41,22 @@ const loginValidation = (req, res, next) => {
     }
     next();
 }
+const validateVote = (req, res, next) => {
+    const schema = Joi.object({
+        voteType: Joi.string().valid('upvote', 'downvote').required()
+    });
+
+    const { error } = schema.validate(req.body); // Changed from req.params to req.body
+    if (error) {
+        return res.status(400).json({ 
+            success: false, 
+            message: error.details[0].message 
+        });
+    }
+    next();
+};
 module.exports = {
     signupValidation,
-    loginValidation
+    loginValidation,
+    validateVote
 }
