@@ -1,39 +1,45 @@
 require('dotenv').config();
-const EmailService = require('../services/Emailservices'); 
+const EmailService = require('../services/Emailservices');
 
 async function testEmailService() {
     console.log('🚀 Testing email notification system...\n');
 
-    const adminEmail = 'narendrakaushik2525@gmail.com'; // Replace with actual admin email
-    const testIssue = {
-        email: 'nkaushik0502@gmail.com', // Replace with user's email to receive the notification
-        name: 'Test User',
-        title: 'Road Maintenance Required',
-        status: 'Accepted',
-        department: 'Public Works',
-        city: 'Test City',
-        reason: 'Work scheduled',
-        remark: 'Will begin next week'
+    const testData = {
+        adminEmail: 'admin@cityassist.com',
+        issueDetails: {
+            email: 'test@example.com',
+            name: 'Test User',
+            title: 'Road Maintenance Required',
+            status: 'Accepted',
+            department: 'Public Works',
+            city: 'Test City',
+            reason: 'Work scheduled',
+            remark: 'Will begin next week'
+        }
     };
 
     try {
-        console.log('Admin Email:', adminEmail);
-        console.log('User Email:', testIssue.email);
-        console.log('\nSending test email...');
+        console.log('📧 Sending test email with following details:');
+        console.log('Admin:', testData.adminEmail);
+        console.log('User:', testData.issueDetails.email);
         
-        const result = await EmailService.sendStatusUpdateEmail(adminEmail, testIssue);
+        const result = await EmailService.sendStatusUpdateEmail(
+            testData.adminEmail, 
+            testData.issueDetails
+        );
         
-        if (result) {
-            console.log('✅ Email sent successfully!');
-            console.log(`From: ${adminEmail}`);
-            console.log(`To: ${testIssue.email}`);
+        if (result.success) {
+            console.log('\n✅ Email sent successfully!');
+            console.log('Preview URL:', result.previewUrl);
         } else {
-            console.log('❌ Email sending failed');
+            console.log('\n❌ Email sending failed');
+            console.error('Error:', result.error);
         }
     } catch (error) {
-        console.error('❌ Test failed:', error.message);
+        console.error('\n❌ Test failed:', error.message);
         console.error('Error details:', error);
     }
 }
 
+// Run the test
 testEmailService();

@@ -341,41 +341,63 @@ const getPriorityIssues = async (req, res) => {
     }
 };
 
+
+
+// Inside updateIssue function
 const updateIssue = async (req, res) => {
     try {
         const { id } = req.params;
-        const { upvotes, downvotes, priority } = req.body;
+        const update = req.body;
 
-        const issue = await IssueModel.findById(id);
-        if (!issue) {
-            return res.status(404).json({
-                success: false,
-                message: "Issue not found"
-            });
+        // Add debug logs
+        console.log('📝 Received update request:', {
+            id,
+            update,
+            userEmail: req.user?.email
+        });
+
+        const updatedIssue = await Issue.findByIdAndUpdate(
+            id,
+            update,
+            { new: true }
+        ).populate('user', 'email name');
+
+        if (!updatedIssue) {
+            console.log('❌ Issue not found:', id);
+            return res.status(404).json({ error: 'Issue not found' });
         }
 
-        // Only update specified fields
-        if (typeof upvotes === 'number') issue.upvotes = upvotes;
-        if (typeof downvotes === 'number') issue.downvotes = downvotes;
-        if (typeof priority === 'number') issue.priority = priority;
+        console.log('✅ Issue updated:', updatedIssue);
 
-        await issue.save();
+        // Send email notification
+        const emailResult = await EmailService.sendStatusUpdateEmail(
+            req.user.email || 'admin@cityassist.com',
+            {
+                email: updatedIssue.email,
+                name: updatedIssue.name || 'User',
+                title: updatedIssue.title,
+                status: updatedIssue.status,
+                department: updatedIssue.department,
+                city: updatedIssue.city,
+                reason: update.reason || '',
+                remark: update.remark || ''
+            }
+        );
+
+        console.log('📧 Email notification result:', emailResult);
 
         res.json({
             success: true,
-            message: "Issue updated successfully",
-            issue: issue.toObject()
+            issue: updatedIssue,
+            emailSent: emailResult.success,
+            emailPreview: emailResult.previewUrl
         });
 
     } catch (error) {
-        console.error("Update error:", error);
-        res.status(500).json({
-            success: false,
-            message: "Failed to update issue"
-        });
+        console.error('❌ Update failed:', error);
+        res.status(500).json({ error: error.message });
     }
 };
-
 
 module.exports={
     signup,

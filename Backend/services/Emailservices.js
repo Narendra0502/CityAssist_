@@ -5,11 +5,14 @@ const nodemailer = require('nodemailer');
 class EmailService {
     static async createTransporter() {
         try {
-            // Create test account with Ethereal
+            console.log('Creating Ethereal test account...');
             const testAccount = await nodemailer.createTestAccount();
-            console.log('Created test account:', testAccount.user);
+            console.log('✅ Test account created:', {
+                user: testAccount.user,
+                pass: '********' // Hide password in logs
+            });
             
-            return nodemailer.createTransport({
+            const transporter = nodemailer.createTransport({
                 host: 'smtp.ethereal.email',
                 port: 587,
                 secure: false,
@@ -17,23 +20,36 @@ class EmailService {
                     user: testAccount.user,
                     pass: testAccount.pass
                 },
-                logger: true, // Enable logging
-                debug: true  // Enable debug
+                logger: true,
+                debug: true
             });
+
+            // Verify transporter
+            await transporter.verify();
+            console.log('✅ SMTP connection established');
+            return transporter;
         } catch (error) {
-            console.error('Transporter creation failed:', error);
+            console.error('❌ Transporter creation failed:', error);
             throw error;
         }
     }
-
     static async sendStatusUpdateEmail(adminEmail, issueDetails) {
         try {
-            if (!issueDetails || !issueDetails.email) {
-                throw new Error('Invalid issue details provided');
+            console.log('📧 Sending email with details:', {
+                admin: adminEmail,
+                issue: {
+                    title: issueDetails?.title,
+                    status: issueDetails?.status,
+                    email: issueDetails?.email
+                }
+            });
+
+            if (!issueDetails?.email) {
+                throw new Error('Invalid issue details: missing email');
             }
     
             const transporter = await this.createTransporter();
-            console.log('Transporter created successfully');
+            console.log('✅ Transporter created successfully');
     
             const emailPromise = new Promise(async (resolve, reject) => {
                 try {
@@ -43,35 +59,42 @@ class EmailService {
                         subject: `Issue Status Update - ${issueDetails.title}`,
                         html: this.getStatusUpdateTemplate(issueDetails)
                     });
-                    
-                    // Add clear preview URL logging
+     
                     console.log('\n📧 Email Preview:');
                     console.log('=====================================');
+                    console.log('Message ID:', info.messageId);
                     console.log('Preview URL:', nodemailer.getTestMessageUrl(info));
                     console.log('=====================================\n');
                     
                     resolve(info);
                 } catch (error) {
+                    console.error('❌ Email sending failed in promise:', error);
                     reject(error);
                 }
             });
     
             const timeoutPromise = new Promise((_, reject) => {
-                setTimeout(() => reject(new Error('Email timeout')), 15000);
+                setTimeout(() => reject(new Error('Email timeout after 15s')), 15000);
             });
-    
+
             const info = await Promise.race([emailPromise, timeoutPromise]);
             return { 
                 success: true, 
                 messageId: info.messageId,
-                previewUrl: nodemailer.getTestMessageUrl(info) // Include URL in response
+                previewUrl: nodemailer.getTestMessageUrl(info)
             };
     
         } catch (error) {
-            console.error('Email sending failed:', error);
-            return { success: false, error: error.message };
+            console.error('❌ Email sending failed:', error);
+            return { 
+                success: false, 
+                error: error.message,
+                stack: error.stack
+            };
         }
     }
+    
+         
 
     static getStatusUpdateTemplate(issueDetails) {
         return `

@@ -2,6 +2,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const crypto = require("crypto");
+const zoomRouter = require('./Routes/zoomRouter');
 const session = require('express-session');
 const MongoDBStore = require('connect-mongodb-session')(session);
 const AuthRouter = require('./Routes/AuthRouter');
@@ -53,6 +54,7 @@ app.post("/api/jitsi/meeting", (req, res) => {
 app.get('/ping', (req, res) => res.send('PONG'));
 
 app.use('/auth', AuthRouter);
+app.use('/zoom', zoomRouter);
 app.use('/admin', AdminRouter);
 
 

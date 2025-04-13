@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { toast } from 'react-hot-toast';
+
 
 const STATUS_CONFIGS = {
   open: { bgColor: "bg-red-100", textColor: "text-red-600", borderColor: "border-red-300" },
@@ -14,12 +16,52 @@ const STATUS_CONFIGS = {
 
 const IssueCard = ({ issue, handleStatusChange }) => {
   const navigate = useNavigate();
+
   const [votes, setVotes] = useState(issue.votes || 0);
 
   const getStatusConfig = (status) => {
     const normalizedStatus = status?.toLowerCase() || "open";
     return STATUS_CONFIGS[normalizedStatus] || STATUS_CONFIGS.open;
   };
+  const onStatusUpdate = async (issueId, newStatus) => {
+    try {
+      const token = localStorage.getItem('token');
+      console.log('🔄 Updating status:', { issueId, newStatus });
+
+      const response = await fetch(`http://localhost:5000/api/issues/${issueId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          status: newStatus,
+          reason: `Status updated to ${newStatus}`,
+          remark: `Updated by admin at ${new Date().toLocaleString()}`
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        console.log('✅ Status updated successfully');
+        console.log('📧 Email notification:', data.emailSent ? 'Sent' : 'Failed');
+        if (data.emailPreview) {
+          console.log('📨 Email preview:', data.emailPreview);
+        }
+        toast.success(`Status updated to ${newStatus}`);
+        handleStatusChange(issueId, newStatus); // Update parent component
+      }
+      else {
+        console.error('❌ Update failed:', data.error);
+        toast.error(data.error || 'Failed to update status');
+      }
+    } catch (error) {
+      console.error('❌ Error:', error);
+      toast.error('Error updating status');
+    }
+  };
+
 
   const navigateToIssueDetails = () => {
     navigate(`/adminDetails/${issue._id}`);
@@ -92,7 +134,7 @@ const IssueCard = ({ issue, handleStatusChange }) => {
       <div className="px-6 py-4 border-t border-gray-100">
         <select
           value={issue.status || "Open"}
-          onChange={(e) => handleStatusChange(issue._id, e.target.value)}
+          onChange={(e) => onStatusUpdate(issue._id, e.target.value)}
           className={`w-full p-2 text-sm border rounded ${statusConfig.textColor} ${statusConfig.borderColor} focus:ring-2 focus:ring-opacity-50 transition-all`}
         >
           <option value="Open">Open</option>

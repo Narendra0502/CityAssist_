@@ -62,6 +62,7 @@ const Card = ({ complaints = [] }) => {
       // Find issue and update votes
       const currentIssue = issues.find(i => i._id === issueId);
       if (!currentIssue) return;
+       const prevIssues = [...issues];
 
       const updatedIssues = issues.map(issue => {
         if (issue._id === issueId) {
