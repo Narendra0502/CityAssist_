@@ -50,7 +50,7 @@ const adminRegister = async (req, res) => {
       department,
       password,
       confirmpassword,
-      role = "user"
+      role
     } = req.body;
     console.log("Received in signup request body:", req.body);
 
