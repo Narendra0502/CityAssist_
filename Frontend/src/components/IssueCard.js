@@ -28,7 +28,7 @@ const IssueCard = ({ issue, handleStatusChange }) => {
       const token = localStorage.getItem('token');
       console.log('🔄 Updating status:', { issueId, newStatus });
 
-      const response = await fetch(`http://localhost:5000/api/issues/${issueId}`, {
+      const response = await fetch(`https://cityassist-backend.onrender.com/api/issues/${issueId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -69,7 +69,7 @@ const IssueCard = ({ issue, handleStatusChange }) => {
 
   const handleVote = async (voteType) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/issues/${issue._id}/vote`, {
+      const response = await fetch(`https://cityassist-backend.onrender.com/api/issues/${issue._id}/vote`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ voteType }),
