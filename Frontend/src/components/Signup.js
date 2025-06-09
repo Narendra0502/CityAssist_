@@ -46,7 +46,7 @@ const Signup = ({setlogin}) => {
             return;
         }
         try {
-            const response = await fetch(`http://localhost:5000/auth/signup`, {
+            const response = await fetch(`https://cityassist-backend.onrender.com/auth/signup`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
