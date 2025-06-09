@@ -16,7 +16,7 @@ const Connect = () => {
 
         try {
             if (meetingType === "zoom") {
-                const response = await fetch("http://localhost:5000/zoom/create-meeting", {
+                const response = await fetch("https://cityassist-backend.onrender.com/zoom/create-meeting", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
