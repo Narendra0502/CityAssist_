@@ -15,7 +15,7 @@ const router = express.Router();
 
 // 🟢 Public Routes (No authentication required)
 router.post("/adminlogin", adminLogin);
-router.post("/adminsignup",verifyToken, adminRegister);
+router.post("/adminsignup", adminRegister);
 
 // 🔒 Protected Routes (JWT authentication required)
 router.get("/getUserIssueData", verifyToken, getUserIssueData);
