@@ -26,7 +26,7 @@ const PORT = process.env.PORT || 6000;
 
 // ✅ Fix CORS & Session Persistence
 app.use(cors({
-  origin: 'http://localhost:3000',
+  origin: 'https://city-assist.vercel.app/',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
