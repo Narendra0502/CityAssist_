@@ -8,7 +8,13 @@ const MongoDBStore = require('connect-mongodb-session')(session);
 const AuthRouter = require('./Routes/AuthRouter');
 const AdminRouter = require('./Routes/adminRouter');
 require('dotenv').config();
-require("./models/db");
+// 
+// require("./models/db");
+
+ 
+const connectDB = require('./Models/db');
+connectDB();
+
 
 const app = express();
 const PORT = process.env.PORT || 6000;
