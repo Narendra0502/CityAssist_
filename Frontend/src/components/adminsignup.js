@@ -46,7 +46,7 @@ const AdminSignup = ({setlogin}) => {
             return;
         }
         try {
-            const response = await fetch(`http://localhost:5000/admin/adminsignup`, {
+            const response = await fetch(`https://cityassist-backend.onrender.com/admin/adminsignup`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
