@@ -36,7 +36,7 @@ const Accepted = () => {
           console.error("❌ Error decoding token:", error);
         }
 
-        const response = await fetch("http://localhost:5000/admin/getAcceptedIssues", {
+        const response = await fetch("https://cityassist-backend.onrender.com/admin/getAcceptedIssues", {
           method: "GET",
           headers: {
             "Authorization": `Bearer ${token}`,
@@ -69,7 +69,7 @@ const Accepted = () => {
     try {
       const token = localStorage.getItem("token");
 
-      const response = await fetch(`http://localhost:5000/admin/updateIssueStatus/${issueId}`, {
+      const response = await fetch(`https://cityassist-backend.onrender.com/admin/updateIssueStatus/${issueId}`, {
         method: "PATCH",
         headers: {
           "Authorization": `Bearer ${token}`,
