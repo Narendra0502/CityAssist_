@@ -121,7 +121,7 @@ const Issues = () => {
         toast.error('Please login to submit an issue');
         return;
       }
-      const response = await fetch('http://localhost:5000/auth/Issues', {
+      const response = await fetch('https://cityassist-backend.onrender.com/auth/Issues', {
         method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}` // Add the authorization header
