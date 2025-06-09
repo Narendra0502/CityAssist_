@@ -92,7 +92,7 @@ const Location = () => {
       return;
     }
   
-    fetch('http://localhost:5000/admin/getUserIssueData', {
+    fetch('https://cityassist-backend.onrender.com/admin/getUserIssueData', {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
