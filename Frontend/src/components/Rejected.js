@@ -36,7 +36,7 @@ const Rejected = () => {
           console.error("❌ Error decoding token:", error);
         }
 
-        const response = await fetch("http://localhost:5000/admin/getRejectedIssues", {
+        const response = await fetch("https://cityassist-backend.onrender.com/admin/getRejectedIssues", {
           method: "GET",
           headers: {
             "Authorization": `Bearer ${token}`,
@@ -69,7 +69,7 @@ const Rejected = () => {
     try {
       const token = localStorage.getItem("token");
 
-      const response = await fetch(`http://localhost:5000/admin/updateIssueStatus/${issueId}`, {
+      const response = await fetch(`https://cityassist-backend.onrender.com/admin/updateIssueStatus/${issueId}`, {
         method: "PATCH",
         headers: {
           "Authorization": `Bearer ${token}`,
