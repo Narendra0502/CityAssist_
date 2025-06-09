@@ -28,7 +28,7 @@ const Card = ({ complaints = [] }) => {
         return;
       }
 
-      const response = await fetch('http://localhost:5000/auth/update', {
+      const response = await fetch('https://cityassist-backend.onrender.com/auth/update', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -116,7 +116,7 @@ const Card = ({ complaints = [] }) => {
 
       // Update in database
       const issueToUpdate = updatedIssues.find(i => i._id === issueId);
-      const response = await fetch(`http://localhost:5000/auth/issues/${issueId}`, {
+      const response = await fetch(`https://cityassist-backend.onrender.com/auth/issues/${issueId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
