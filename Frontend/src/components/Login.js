@@ -59,6 +59,7 @@ const Login = ({ setLogin, hideNavbar = true }) => {
         }
 
         try {
+            // https://cityassist-backend.onrender.com
             const response = await fetch('https://cityassist-backend.onrender.com/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
