@@ -36,7 +36,7 @@ const Completed = () => {
           console.error("❌ Error decoding token:", error);
         }
 
-        const response = await fetch("http://localhost:5000/admin/getCompletedIssues", {
+        const response = await fetch("https://cityassist-backend.onrender.com/admin/getCompletedIssues", {
           method: "GET",
           headers: {
             "Authorization": `Bearer ${token}`,
