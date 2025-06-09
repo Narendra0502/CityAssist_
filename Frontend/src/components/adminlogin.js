@@ -55,7 +55,7 @@ const AdminLogin = ({ setLogin }) => {
         }
 
         try {
-            const response = await fetch('http://localhost:5000/admin/adminlogin', {
+            const response = await fetch('https://cityassist-backend.onrender.com/admin/adminlogin', {
                 method: 'POST',
                 credentials: 'include',
                 headers: {
