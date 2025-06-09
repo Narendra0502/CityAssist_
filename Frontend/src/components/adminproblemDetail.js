@@ -20,7 +20,7 @@ const AdminIssueDetails = () => {
         }
         setLoading(true);
 
-        const response = await fetch(`http://localhost:5000/admin/getIssueDataById/${id}`, {
+        const response = await fetch(`https://cityassist-backend.onrender.com/admin/getIssueDataById/${id}`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -65,7 +65,7 @@ const AdminIssueDetails = () => {
         return;
       }
       
-      const response = await fetch(`http://localhost:5000/admin/updateIssueStatus`, {
+      const response = await fetch(`https://cityassist-backend.onrender.com/admin/updateIssueStatus`, {
         
         method: 'PUT',
         headers: {
