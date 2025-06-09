@@ -9,7 +9,7 @@ export const Fetching = async () => {
   try {
     console.log("Fetching complaints with token:", token);
 
-    const response = await fetch('http://localhost:5000/auth/complain', {
+    const response = await fetch('https://cityassist-backend.onrender.com/auth/complain', {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
