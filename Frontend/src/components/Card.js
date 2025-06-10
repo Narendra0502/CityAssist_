@@ -28,7 +28,7 @@ const Card = ({ complaints = [] }) => {
         return;
       }
 
-      const response = await fetch('http://localhost:5000/auth/update', {
+      const response = await fetch('https://cityassist-backend.onrender.com/auth/update', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
