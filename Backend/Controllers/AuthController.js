@@ -1,10 +1,9 @@
-
-
-
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
 const UserModel = require("../Models/User");
 const IssueModel = require('../Models/Issue');
+const EmailService = require("../services/Emailservices");
 const dotenv = require("dotenv");
 
 const signup = async (req, res) => {
@@ -186,99 +185,148 @@ const createIssue = async (req, res) => {
     }
 };
 const upvoteIssue = async (req, res) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
     try {
         const { issueId } = req.params;
-        const { voteType,upvotes } = req.body; // Add this line
-        const userId = req.user._id; // From auth middleware
+        const { voteType } = req.body;
+        const userId = req.user._id;
 
-        const issue = await IssueModel.findById(issueId);
+        const issue = await IssueModel.findById(issueId).session(session);
         if (!issue) {
-            console.log("Issue not found in upvote");
+            await session.abortTransaction();
+            session.endSession();
             return res.status(404).json({ 
                 success: false, 
                 message: "Issue not found" 
             });
         }
 
-        // Check if user has already voted
+        // Find existing vote
         const existingVoteIndex = issue.votedBy.findIndex(vote => 
             vote.userId.toString() === userId.toString()
         );
 
-        if (existingVoteIndex>=0) {
+        // Handle upvote logic
+        if (existingVoteIndex >= 0) {
             const existingVote = issue.votedBy[existingVoteIndex];
             if (existingVote.voteType === "upvote") {
-                // Remove vote if already upvoted
+                // Remove upvote
                 issue.upvotes = Math.max(0, issue.upvotes - 1);
                 issue.votedBy.splice(existingVoteIndex, 1);
             } else {
                 // Change downvote to upvote
+                issue.downvotes = Math.max(0, issue.downvotes - 1);
                 issue.upvotes = Math.max(0, issue.upvotes + 1);
-                issue.upvotes += 1;
                 existingVote.voteType = 'upvote';
             }
         } else {
             // Add new upvote
-            issue.upvotes += 1;
+            issue.upvotes = (issue.upvotes || 0) + 1;
             issue.votedBy.push({ userId, voteType: 'upvote' });
+        }
+
+        // Update priority
+        issue.priority = issue.upvotes - issue.downvotes;
+        
+        await issue.save({ session });
+        await session.commitTransaction();
+        
+        res.status(200).json({
+            success: true,
+            message: "Vote updated successfully",
+            data: {
+                upvotes: issue.upvotes,
+                downvotes: issue.downvotes,
+                priority: issue.priority,
+                userVote: 'upvote'
+            }
+        });
+
+    } catch (error) {
+        await session.abortTransaction();
+        console.error("Error in upvote:", error);
+        res.status(500).json({
+            success: false,
+            message: "Failed to update vote",
+            error: error.message
+        });
+    } finally {
+        session.endSession();
+    }
+};
+
+const downvoteIssue = async (req, res) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+        const { issueId } = req.params;
+        const { voteType } = req.body;
+        const userId = req.user._id;
+
+        const issue = await IssueModel.findById(issueId).session(session);
+        if (!issue) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(404).json({ 
+                success: false, 
+                message: "Issue not found" 
+            });
+        }
+
+        // Find existing vote
+        const existingVoteIndex = issue.votedBy.findIndex(vote => 
+            vote.userId.toString() === userId.toString()
+        );
+
+        // Handle downvote logic
+        if (existingVoteIndex >= 0) {
+            const existingVote = issue.votedBy[existingVoteIndex];
+            if (existingVote.voteType === 'downvote') {
+                // Remove downvote
+                issue.downvotes = Math.max(0, issue.downvotes - 1);
+                issue.votedBy.splice(existingVoteIndex, 1);
+            } else {
+                // Change upvote to downvote
+                issue.upvotes = Math.max(0, issue.upvotes - 1);
+                issue.downvotes = Math.max(0, issue.downvotes + 1);
+                existingVote.voteType = 'downvote';
+            }
+        } else {
+            // Add new downvote
+            issue.downvotes = (issue.downvotes || 0) + 1;
+            issue.votedBy.push({ userId, voteType: 'downvote' });
         }
 
         // Update priority based on total votes
         issue.priority = issue.upvotes - issue.downvotes;
         
-        await issue.save();
-        console.log("upvoted successfully"),  
+        await issue.save({ session });
+        await session.commitTransaction();
+        
         res.status(200).json({
-            
             success: true,
             message: "Vote updated successfully",
-            votes: issue.upvotes
+            data: {
+                upvotes: issue.upvotes,
+                downvotes: issue.downvotes,
+                priority: issue.priority,
+                userVote: 'downvote'
+            }
         });
+
     } catch (error) {
-        console.error("Upvote nahi hua error:", error);
+        await session.abortTransaction();
+        console.error("Error in downvote:", error);
         res.status(500).json({
             success: false,
-            message: "Failed to update vote"
+            message: "Failed to update vote",
+            error: error.message
         });
-    }
-};
-
-const downvoteIssue = async (req, res) => {
-    try {
-        const { issueId } = req.params;
-        const { voteType,downvotes } = req.body; // Add this line
-        const userId = req.user._id; // From auth middleware
-
-        const issue = await IssueModel.findById(issueId);
-        if (!issue) return res.status(404).json({ message: "Issue not found", success: false });
-        const existingVoteIndex = issue.votedBy.findIndex(vote => 
-            vote.userId.toString() === userId.toString()
-        );
-         if (existingVoteIndex >= 0) {
-            const existingVote = issue.votedBy[existingVoteIndex];
-            if (existingVote.voteType === 'downvote') {
-                // Remove downvote
-                issue.downvotes = Math.min(issue.downvotes + 1, issue.votedBy.length);
-                issue.votedBy.splice(existingVoteIndex, 1);
-            } else {
-                // Change upvote to downvote
-                issue.downvotes = Math.max(0, issue.downvotes - 1);
-                existingVote.voteType = 'downvote';
-            }
-        } else {
-            // Add new downvote if votes > 0
-            if (issue.downvotes > 0) {
-                issue.downvotes += 1;
-                issue.votedBy.push({ userId, voteType: 'downvote' });
-            }
-        }
-        //issue.votes -= 1;
-        issue.priority = Math.max(0, issue.upvotes - issue.downvotes); // Prevent priority from going negative
-        await issue.save();
-       console.log("downvoted successfully");
-        res.status(200).json({ message: "Downvote successful", success: true, votes: issue.downvotes });
-    } catch (err) {
-        res.status(500).json({ message: "Internal server error", success: false });
+    } finally {
+        session.endSession();
     }
 };
 
@@ -356,11 +404,11 @@ const updateIssue = async (req, res) => {
             userEmail: req.user?.email
         });
 
-        const updatedIssue = await Issue.findByIdAndUpdate(
+        const updatedIssue = await IssueModel.findByIdAndUpdate(
             id,
             update,
             { new: true }
-        ).populate('user', 'email name');
+        );
 
         if (!updatedIssue) {
             console.log('❌ Issue not found:', id);
