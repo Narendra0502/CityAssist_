@@ -20,6 +20,7 @@ import AdminNavBar from "./components/adminnav.js";
 import AdminIssueDetails from "./components/adminproblemDetail.js";
 import JitsiMeeting from "./components/JitsiMeeting";
 import Cityupdate from "./components/Cityupdate.js";
+import ImageUpload from "./components/ImageUpload.js";
 //require("dotenv").config();
 
 // let payload = {
@@ -80,14 +81,12 @@ function App() {
         />
         <Route path="/signup" element={
           <>
-            <Navbar islogedin={islogedin} setlogin={setlogin} />
             <Signup setlogin={setlogin} />
           </>
         }
         />
         <Route path="/Login" element={
           <>
-            <Navbar islogedin={islogedin} setlogin={setlogin} />
             <Login setLogin={setlogin} />
           </>
 
@@ -103,14 +102,14 @@ function App() {
 
         <Route path="/adminsignup" element={
           <>
-            <Navbar islogedin={islogedin} setlogin={setlogin} />
+            {/* <Navbar islogedin={islogedin} setlogin={setlogin} /> */}
             <AdminSignup setlogin={setlogin} />
           </>
         }
         />
         <Route path="/adminlogin" element={
           <>
-            <Navbar islogedin={islogedin} setlogin={setlogin} />
+            {/* <Navbar islogedin={islogedin} setlogin={setlogin} /> */}
             <AdminLogin setLogin={setlogin} />
           </>
         }
@@ -178,6 +177,7 @@ function App() {
         <Route path="/Jitsi/:roomName" element={<JitsiMeeting />} />
 
         <Route path="/status" element={<Status allComplaints={allComplaints} />} />
+        <Route path="/image-upload" element={<ImageUpload />} />
 
         <Route path="/adminDetails/:id" element={
           <>
