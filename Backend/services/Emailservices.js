@@ -2,26 +2,15 @@
 
 const nodemailer = require('nodemailer');
 
-class EmailService {
-    static async createTransporter() {
+class EmailService {    static async createTransporter() {
         try {
-            console.log('Creating Ethereal test account...');
-            const testAccount = await nodemailer.createTestAccount();
-            console.log('✅ Test account created:', {
-                user: testAccount.user,
-                pass: '********' // Hide password in logs
-            });
-            
+            console.log('Creating Gmail transporter...');
             const transporter = nodemailer.createTransport({
-                host: 'smtp.ethereal.email',
-                port: 587,
-                secure: false,
+                service: 'gmail',
                 auth: {
-                    user: testAccount.user,
-                    pass: testAccount.pass
-                },
-                logger: true,
-                debug: true
+                    user: process.env.EMAIL_USER,
+                    pass: process.env.EMAIL_APP_PASSWORD
+                }
             });
 
             // Verify transporter
