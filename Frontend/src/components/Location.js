@@ -25,20 +25,39 @@ const Location = () => {
   // Initialize map
   useEffect(() => {
     const loadBingMapsScript = () => {
-      if (window.Microsoft?.Maps) {
-        initMap();
-        return;
-      }
+      return new Promise((resolve, reject) => {
+        if (window.Microsoft?.Maps) {
+          resolve();
+          return;
+        }
 
-      const script = document.createElement('script');
-      script.src = `https://www.bing.com/api/maps/mapcontrol?key=ArSGwElpgs65UXUwCnZ4ibhLzkmxuScTxz0rCq_kgJy35pa2tSq229GIMzMPVQ8P`;
-      script.async = true;
-      script.defer = true;
-      script.onload = initMap;
-      document.body.appendChild(script);
+        const script = document.createElement('script');
+        script.src = `https://www.bing.com/api/maps/mapcontrol?key=ArSGwElpgs65UXUwCnZ4ibhLzkmxuScTxz0rCq_kgJy35pa2tSq229GIMzMPVQ8P&callback=bingMapsLoaded`;
+        script.async = true;
+        script.defer = true;
+        
+        window.bingMapsLoaded = () => {
+          delete window.bingMapsLoaded;
+          resolve();
+        };
+
+        script.onerror = () => reject(new Error('Failed to load Bing Maps'));
+        document.body.appendChild(script);
+      });
     };
 
-    loadBingMapsScript();
+    const initializeMap = async () => {
+      try {
+        await loadBingMapsScript();
+        await initMap();
+        fetchCoordinates();
+      } catch (error) {
+        console.error('Error initializing map:', error);
+        toast.error('Failed to load map. Please refresh the page.');
+      }
+    };
+
+    initializeMap();
 
     return () => {
       stopNavigation();
@@ -254,189 +273,126 @@ const calculateHeading = (userLoc, destLoc) => {
   const heading = (Math.atan2(dx, dy) * 180 / Math.PI);
   return heading >= 0 ? heading : heading + 360;
 };
-  const startNavigation = (destLat, destLng) => {
-    if (!navigator.geolocation) {
-      toast.error('Geolocation is not supported by your browser');
-      return;
-    }
+  const startNavigation = async (destLat, destLng) => {
+    try {
+      if (!navigator.geolocation) {
+        throw new Error('Geolocation is not supported by your browser');
+      }
   
-    if (!mapRef.current || !directionsManager) {
-      toast.error('Map is not initialized');
-      return;
-    }
-    setIsNavigating(true);
-    setIsPanelExpanded(true);
-    if (userMarkerRef.current && mapRef.current.entities) {
-      mapRef.current.entities.remove(userMarkerRef.current);
-    }
-  
-  
-  
-    // Start watching user's position
-    const id = navigator.geolocation.watchPosition(
-      (position) => {
-        try {
-          if (!mapRef.current) {
-            console.error('Map reference lost during navigation');
-            stopNavigation();
-            return;
-          }
-  
-          const userLoc = new window.Microsoft.Maps.Location(
-            position.coords.latitude,
-            position.coords.longitude
-          );
-          const destLoc = new window.Microsoft.Maps.Location(destLat, destLng);
-          const calculatedHeading = calculateHeading(userLoc, destLoc);
-          setRouteHeading(calculatedHeading); // Update the route heading
-  
-          // Remove previous user marker if exists
-          if (userMarkerRef.current) {
-            mapRef.current.entities.remove(userMarkerRef.current);
-          }
-         
-  
-          // Create navigation arrow marker
-          userMarkerRef.current = new window.Microsoft.Maps.Pushpin(userLoc, {
-            icon: `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24">
-              <path d="M12 2L7 21l5-5 5 5L12 2z" 
-                fill="#4285F4"
-                transform="rotate(${position.coords.heading || calculatedHeading} 12 12)"
-              />
-              <circle cx="12" cy="12" r="4" fill="white"/>
-              <circle cx="12" cy="12" r="2" fill="#4285F4"/>
-            </svg>`,
-            anchor: new window.Microsoft.Maps.Point(20, 20)
-        
-        
-           
-          });
-        
+      if (!mapRef.current || !window.Microsoft?.Maps) {
+        throw new Error('Map is not initialized');
+      }
+
+      // Make sure directions module is loaded
+      if (!directionsManager) {
+        await loadDirectionsModule();
+      }
+
+      // Request permissions if needed
+      const permission = await navigator.permissions.query({ name: 'geolocation' });
+      if (permission.state === 'denied') {
+        throw new Error('Location permission denied');
+      }
+
+      setIsNavigating(true);
+      setIsPanelExpanded(true);
+
+      if (userMarkerRef.current && mapRef.current.entities) {
+        mapRef.current.entities.remove(userMarkerRef.current);
+      }
+
+      // Start watching user's position with high accuracy
+      const id = navigator.geolocation.watchPosition(
+        (position) => {
+          try {
+            if (!mapRef.current) {
+              throw new Error('Map reference lost during navigation');
+            }
+
+            const userLoc = new window.Microsoft.Maps.Location(
+              position.coords.latitude,
+              position.coords.longitude
+            );
+            const destLoc = new window.Microsoft.Maps.Location(destLat, destLng);
+            const calculatedHeading = calculateHeading(userLoc, destLoc);
+            setRouteHeading(calculatedHeading);
+
+            // Remove previous user marker if exists
+            if (userMarkerRef.current) {
+              mapRef.current.entities.remove(userMarkerRef.current);
+            }
+
+            // Create navigation arrow marker
+            userMarkerRef.current = new window.Microsoft.Maps.Pushpin(userLoc, {
+              icon: `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24">
+                <path d="M12 2L7 21l5-5 5 5L12 2z" 
+                  fill="#4285F4"
+                  transform="rotate(${position.coords.heading || calculatedHeading} 12 12)"
+                />
+                <circle cx="12" cy="12" r="4" fill="white"/>
+                <circle cx="12" cy="12" r="2" fill="#4285F4"/>
+              </svg>`,
+              anchor: new window.Microsoft.Maps.Point(20, 20)
+            });
+
             mapRef.current.entities.push(userMarkerRef.current);
             mapRef.current.setView({
               center: userLoc,
               zoom: 18,
               heading: position.coords.heading || routeHeading
             });
-          
-  
-          // Add new marker
-          //mapRef.current.entities.push(userMarkerRef.current);
-          setUserLocation(userLoc);
 
-          if (directionsManager) {
-            const waypoints = directionsManager.getAllWaypoints();
-            if (waypoints && waypoints.length > 0) {
-              waypoints[0].setLocation(userLoc);
-              directionsManager.calculateDirections();
+            // Update route if we have a directions manager
+            if (directionsManager) {
+              const waypoints = directionsManager.getAllWaypoints();
+              if (waypoints && waypoints.length > 0) {
+                waypoints[0].setLocation(userLoc);
+                directionsManager.calculateDirections();
+              }
             }
-          }
-  
-          
 
-          const distance = window.Microsoft.Maps.SpatialMath.getDistanceTo(
-            userLoc, 
-            destLoc, 
-            window.Microsoft.Maps.SpatialMath.DistanceUnits.Kilometers
-          );
-          const speed = position.coords.speed || 0;
-          const eta = speed > 0 ? formatTime((distance * 1000) / speed) : 'calculating...';
-  
-  
-         
-          const directionsPanel = document.getElementById('directionsPanel');
-          if (directionsPanel) {
-            const navigationInfo = document.createElement('div');
-            navigationInfo.className = 'navigation-info sticky top-0 bg-white p-4 border-b';
-            navigationInfo.innerHTML = `
-            <div class="flex flex-col gap-3">
-              <div class="flex justify-between items-center">
-                <div class="flex items-center gap-2">
-                  <svg class="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"/>
-                  </svg>
-                  <span class="font-medium">Distance: ${distance.toFixed(2)} km</span>
-                </div>
-                <span class="font-medium">ETA: ${eta}</span>
-              </div>
-              <div class="flex justify-between items-center">
-                <span class="font-medium">Speed: ${(speed * 3.6).toFixed(1)} km/h</span>
-                <span class="font-medium text-green-600">Time Left: ${formatTime((distance * 1000) / (speed || 1))}</span>
-              </div>
-              ${distance <= 0.05 ? `
-                <div class="mt-2 p-3 bg-green-50 rounded-lg">
-                  <span class="font-medium text-green-800">You have arrived!</span>
-                </div>
-              ` : ''}
-            </div>
-          `;
-            
-          const oldInfo = directionsPanel.querySelector('.navigation-info');
-          if (oldInfo) oldInfo.remove();
-          directionsPanel.insertBefore(navigationInfo, directionsPanel.firstChild);
-        
-          }
-          // mapRef.current.setView({
-          //   center: userLoc,
-          //   zoom: 18,
-          //   heading: position.coords.heading ||  routeHeading
-          // });
-         
-  
-          // Check if arrived
-          if (distance <= 0.05) {
-            toast.success('You have arrived at your destination!');
+            const distance = window.Microsoft.Maps.SpatialMath.getDistanceTo(
+              userLoc, 
+              destLoc, 
+              window.Microsoft.Maps.SpatialMath.DistanceUnits.Kilometers
+            );
+
+            const speed = position.coords.speed || 0;
+            const eta = speed > 0 ? formatTime((distance * 1000) / speed) : 'calculating...';
+
+            // Update navigation panel
+            updateNavigationPanel(distance, speed, eta);
+
+            // Check if arrived
+            if (distance <= 0.05) {
+              toast.success('You have arrived at your destination!');
+              stopNavigation();
+            }
+          } catch (error) {
+            console.error('Error updating navigation:', error);
+            toast.error('Navigation error occurred');
             stopNavigation();
-            return;
           }
-  
-        } catch (error) {
-          console.error('Error updating navigation:', error);
-          toast.error('Navigation error occurred');
+        },
+        (error) => {
+          console.error('Position tracking error:', error);
+          toast.error('Failed to track location');
           stopNavigation();
+        },
+        {
+          enableHighAccuracy: true,
+          maximumAge: 0,
+          timeout: 5000
         }
-      },
-      (error) => {
-        console.error('Position tracking error:', error);
-        toast.error('Failed to track location');
-        stopNavigation();
-      },
-      {
-        enableHighAccuracy: true,
-        maximumAge: 0,
-        timeout: 5000
-      }
-    );
-  
-    setWatchId(id);
-    toast.success('Navigation started');
-  
-    // Add navigation controls to directions panel
-    const directionsPanel = document.getElementById('directionsPanel');
-    if (directionsPanel) {
-      const controls = document.createElement('div');
-      controls.className = 'navigation-controls sticky top-0 bg-white p-4 shadow-md';
-      controls.innerHTML = `
-      <div class="flex flex-col gap-3">
-        <div class="flex justify-between items-center">
-          <span class="font-medium text-lg">Turn-by-Turn Navigation</span>
-        </div>
-        <div class="flex gap-2">
-          <button onclick="window.stopNavigation()" 
-            class="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex items-center justify-center gap-2">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-            </svg>
-            Stop Navigation
-          </button>
-          <button onclick="window.cancelDirections()"
-            class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors">
-            Close
-          </button>
-        </div>
-      </div>
-    `;
-      directionsPanel.insertBefore(controls, directionsPanel.firstChild);
+      );
+
+      setWatchId(id);
+      toast.success('Navigation started');
+    } catch (error) {
+      console.error('Error starting navigation:', error);
+      toast.error(error.message);
+      setIsNavigating(false);
+      setIsPanelExpanded(false);
     }
   };
   const getUserLocation = () => {
@@ -465,22 +421,30 @@ const calculateHeading = (userLoc, destLoc) => {
   // Add this function before the return statement
 const getDirections = async (destLat, destLng) => {
   try {
-    if (!directionsManager) {
-      toast.error('Directions service not available');
+    if (!mapRef.current || !window.Microsoft?.Maps) {
+      toast.error('Map is not ready');
       return;
     }
 
-    // Clear previous directions
+    // Make sure directions module is loaded
+    if (!directionsManager) {
+      await loadDirectionsModule();
+      if (!directionsManager) {
+        throw new Error('Failed to initialize directions service');
+      }
+    }
+
     directionsManager.clearAll();
 
-    // Get user's current location
+    // Get user's current location with high accuracy
     const currentLocation = await new Promise((resolve, reject) => {
       navigator.geolocation.getCurrentPosition(
         position => resolve({
           latitude: position.coords.latitude,
           longitude: position.coords.longitude
         }),
-        error => reject(error)
+        error => reject(error),
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
       );
     });
 
@@ -569,6 +533,40 @@ const loadDirectionsModule = () => {
     });
   });
 };
+
+const updateNavigationPanel = (distance, speed, eta) => {
+  const directionsPanel = document.getElementById('directionsPanel');
+  if (!directionsPanel) return;
+
+  const navigationInfo = document.createElement('div');
+  navigationInfo.className = 'navigation-info sticky top-0 bg-white p-4 border-b';
+  navigationInfo.innerHTML = `
+    <div class="flex flex-col gap-3">
+      <div class="flex justify-between items-center">
+        <div class="flex items-center gap-2">
+          <svg class="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"/>
+          </svg>
+          <span class="font-medium">Distance: ${distance.toFixed(2)} km</span>
+        </div>
+        <span class="font-medium">ETA: ${eta}</span>
+      </div>
+      <div class="flex justify-between items-center">
+        <span class="font-medium">Speed: ${(speed * 3.6).toFixed(1)} km/h</span>
+        <span class="font-medium text-green-600">Time Left: ${formatTime((distance * 1000) / (speed || 1))}</span>
+      </div>
+      ${distance <= 0.05 ? `
+        <div class="mt-2 p-3 bg-green-50 rounded-lg">
+          <span class="font-medium text-green-800">You have arrived!</span>
+        </div>
+      ` : ''}
+    </div>
+  `;
+  
+  const oldInfo = directionsPanel.querySelector('.navigation-info');
+  if (oldInfo) oldInfo.remove();
+  directionsPanel.insertBefore(navigationInfo, directionsPanel.firstChild);
+};
   
   
     return (
@@ -607,7 +605,7 @@ const loadDirectionsModule = () => {
         )}
   
         {/* Enhanced Directions panel */}
-        // Update the directions panel JSX
+        {/* Update the directions panel JSX */}
 <div className={`directions-panel ${isPanelExpanded ? 'expanded' : ''}`}>
   <div className="panel-header">
     <div className="flex justify-between items-center px-4">
@@ -663,7 +661,7 @@ const loadDirectionsModule = () => {
               text-align: center;
               border-bottom: 1px solid #e5e7eb;
             }
-            // Update these styles in your existing style block
+            /* Update these styles in your existing style block */
 .directions-panel {
   position: fixed;
   bottom: 0;
