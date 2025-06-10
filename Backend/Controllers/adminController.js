@@ -40,7 +40,6 @@ const getUserIssueData = async (req, res) => {
 
 const adminRegister = async (req, res) => {
   try {
-    console.log(req.body);
     const {
       firstname,
       email,
@@ -52,14 +51,21 @@ const adminRegister = async (req, res) => {
       confirmpassword,
       role
     } = req.body;
-    console.log("Received in signup request body:", req.body);
+    
+    // Log request for debugging
+    console.log("Admin signup request received:", { firstname, email, department, city, role });
 
     if (password !== confirmpassword) {
       return res.status(400).json({ message: 'Passwords do not match' });
     }
-    if (!department) {
-      console.error("❌ Department is missing in signup controller request body!");
-      return res.status(400).json({ message: "Department is required" });
+    // Validate all required fields
+    if (!firstname || !email || !contact || !address || !city || !department || !password) {
+      console.error("❌ Missing required fields in admin signup:", 
+        { firstname, email, contact, address, city, department });
+      return res.status(400).json({ 
+        success: false,
+        message: "All fields are required" 
+      });
     }
 
     // Check if user already exists
@@ -85,7 +91,7 @@ const adminRegister = async (req, res) => {
     // Set session values
     const token = jwt.sign(
       { userId: savedUser._id, city: savedUser.city, department: savedUser.department, role: savedUser.role },
-      JWT_SECRET || "yourSecretKey",
+      process.env.JWT_SECRET || "yourSecretKey",
       { expiresIn: "7d" }
     );
 
@@ -100,10 +106,26 @@ const adminRegister = async (req, res) => {
 
     console.log("Session after admin register:", token);
 
-    res.json({ message: 'Registration successful', success: true, token });
+    res.status(201).json({ 
+      message: 'Registration successful', 
+      success: true, 
+      token,
+      user: {
+        id: savedUser._id,
+        firstname: savedUser.firstname,
+        email: savedUser.email,
+        city: savedUser.city,
+        department: savedUser.department,
+        role: savedUser.role
+      }
+    });
   } catch (error) {
-    console.error(error);
-    res.status(500).json('Error registering user');
+    console.error('Admin registration error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error registering admin user', 
+      error: error.message 
+    });
   }
 }
 
