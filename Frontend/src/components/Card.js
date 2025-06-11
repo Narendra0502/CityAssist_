@@ -61,7 +61,7 @@ const Card = ({ complaints = [] }) => {
       setVoteState(prev => ({ ...prev, isVoting: true }));
 
       // Send request to backend
-      const response = await fetch(`https://cityassist-backend.onrender.com/auth/issues/${issueId}`, {
+      const response = await fetch(`https://cityassist-backend.onrender.com/auth/issuesvote/${issueId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -76,11 +76,22 @@ const Card = ({ complaints = [] }) => {
       }
 
       const data = await response.json();
+      console.log('Vote response:', data);
       
       if (data.success) {
         toast.success('Vote updated successfully');
-        // Refresh issues to get updated state
-        fetchIssues();
+        // Update the specific issue's vote counts
+        setIssues(prevIssues => prevIssues.map(issue => {
+          if (issue._id === issueId) {
+            return {
+              ...issue,
+              upvotes: data.data?.upvotes ?? issue.upvotes,
+              downvotes: data.data?.downvotes ?? issue.downvotes,
+              userVote: data.data?.userVote
+            };
+          }
+          return issue;
+        }));
       } else {
         throw new Error(data.message || 'Failed to update vote');
       }
@@ -88,8 +99,6 @@ const Card = ({ complaints = [] }) => {
     } catch (error) {
       console.error("Vote failed:", error);
       toast.error(error.message || 'Failed to vote. Please try again');
-      // Reload current state
-      fetchIssues();
     } finally {
       setVoteState(prev => ({ ...prev, isVoting: false }));
     }
