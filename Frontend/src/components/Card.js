@@ -50,7 +50,6 @@ const Card = ({ complaints = [] }) => {
 
   const handleVote = async (issueId, voteType) => {
     if (voteState.isVoting) return;
-    
     try {
       const token = localStorage.getItem('token');
       if (!token) {
@@ -60,45 +59,84 @@ const Card = ({ complaints = [] }) => {
 
       setVoteState(prev => ({ ...prev, isVoting: true }));
 
-      // Send request to backend
-      const response = await fetch(`https://cityassist-backend.onrender.com/auth/issuesvote/${issueId}`, {
+      // Find issue and update votes
+      const currentIssue = issues.find(i => i._id === issueId);
+      if (!currentIssue) return;
+       const prevIssues = [...issues];
+
+      const updatedIssues = issues.map(issue => {
+        if (issue._id === issueId) {
+          let newUpvotes = issue.upvotes || 0;
+          let newDownvotes = issue.downvotes || 0;
+          let newUserVote = issue.userVote;
+
+          // Handle vote changes
+          if (voteType === 'upvote') {
+            if (issue.userVote === 'upvote') {
+              // If already upvoted, remove upvote
+              newUpvotes--;
+              newUserVote = null;
+            } else {
+              // Add new upvote
+              newUpvotes++;
+              // If previously downvoted, remove downvote
+              if (issue.userVote === 'downvote') {
+                newDownvotes--;
+              }
+              newUserVote = 'upvote';
+            }
+          } else if (voteType === 'downvote') {
+            if (issue.userVote === 'downvote') {
+              // If already downvoted, remove downvote
+              newDownvotes--;
+              newUserVote = null;
+            } else {
+              // Add new downvote
+              newDownvotes++;
+              // If previously upvoted, remove upvote
+              if (issue.userVote === 'upvote') {
+                newUpvotes--;
+              }
+              newUserVote = 'downvote';
+            }
+          }
+        
+          return {
+            ...issue,
+            upvotes: Math.max(0, newUpvotes),
+            downvotes: Math.max(0, newDownvotes),
+            userVote: voteType
+          };
+        }
+        return issue;
+      });
+
+      // Update local state first
+      setIssues(updatedIssues);
+
+      // Update in database
+      const issueToUpdate = updatedIssues.find(i => i._id === issueId);
+      const response = await fetch(`https://cityassist-backend.onrender.com/auth/issues/${issueId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ voteType })
+        body: JSON.stringify({
+          upvotes: issueToUpdate.upvotes,
+          downvotes: issueToUpdate.downvotes,
+          priority: issueToUpdate.priority
+        })
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to update vote');
-      }
-
-      const data = await response.json();
-      console.log('Vote response:', data);
-      
-      if (data.success) {
-        toast.success('Vote updated successfully');
-        // Update the specific issue's vote counts
-        setIssues(prevIssues => prevIssues.map(issue => {
-          if (issue._id === issueId) {
-            return {
-              ...issue,
-              upvotes: data.data?.upvotes ?? issue.upvotes,
-              downvotes: data.data?.downvotes ?? issue.downvotes,
-              userVote: data.data?.userVote
-            };
-          }
-          return issue;
-        }));
-      } else {
-        throw new Error(data.message || 'Failed to update vote');
-      }
+      if (!response.ok) throw new Error('Failed to update vote');
+      toast.success('Vote updated successfully');
 
     } catch (error) {
       console.error("Vote failed:", error);
-      toast.error(error.message || 'Failed to vote. Please try again');
+      toast.error(error.message);
+      // Rollback by refetching
+      fetchIssues();
     } finally {
       setVoteState(prev => ({ ...prev, isVoting: false }));
     }
