@@ -47,8 +47,8 @@ const AdminDashboard = () => {
         }
 
         const data = await response.json();
-        const sortedData = Array.isArray(data) ? 
-        data.sort((a, b) => (b.priority || 0) - (a.priority || 0)) : [];
+        // const sortedData = Array.isArray(data) ? 
+        // data.sort((a, b) => (b.priority || 0) - (a.priority || 0)) : [];
         setIssues(Array.isArray(data) ? data : []);
         setError(null);
       } catch (error) {
