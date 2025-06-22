@@ -123,7 +123,7 @@ const IssueCard = ({ issue, handleStatusChange }) => {
             <option value="Accepted">Accepted</option>
             <option value="Rejected">Rejected</option>
             <option value="Completed">Completed</option>
-            <option value="Hold">Hold</option>
+            // <option value="Hold">Hold</option>
           </select>
         </div>
       )}
