@@ -23,8 +23,29 @@ router.post("/login", loginValidation, login);
 router.post("/issues", authMiddleware, upload.single("image"), createIssue);
 router.get("/complain", authMiddleware, getAllIssues);
 router.put("/issues/:id", authMiddleware, updateIssue); 
-// // Inside the vote route handler in AuthRouter.js
-// router.put("/issues/:issueId/vote", authMiddleware, async (req, res) => {
+// Vote routes
+// Combine both vote operations under a single route
+router.put("/issuesvote/:issueId", authMiddleware, async (req, res) => {
+    try {
+        const { voteType } = req.body;
+        console.log('Vote request received:', { issueId: req.params.issueId, voteType, userId: req.user._id });
+        
+        if (voteType === 'upvote') {
+            await upvoteIssue(req, res);
+        } else if (voteType === 'downvote') {
+            await downvoteIssue(req, res);
+        } else {
+            await updateIssue(req, res);
+        }
+    } catch (error) {
+        console.error('Vote error:', error);
+        res.status(500).json({
+            success: false,
+            message: "Failed to process vote",
+            error: error.message
+        });
+    }
+});
 //     try {
 //         const { issueId } = req.params;
 //         const { voteType } = req.body;
