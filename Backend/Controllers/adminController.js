@@ -6,7 +6,9 @@ dotenv.config();
 const AdminRegistrationForm = require("../Models/adminRegister");
 // import Issue from "../Models/Issue";
 const Issue = require("../Models/Issue");
+const EmailService = require("../services/Emailservices");
 const SECRET_KEY = process.env.JWT_SECRET || "your_secret_key";
+
 
 const getUserIssueData = async (req, res) => {
   try {
@@ -200,7 +202,7 @@ const getDetailsById = async (req, res) => {
 };
 
 const updateIssueStatus = async (req, res) => {
-  const { issueId, status } = req.body;
+  const { issueId, status, reason, remark } = req.body;
   console.log("Received issueId:", issueId);
   console.log("Received status:", status);
 
@@ -217,7 +219,11 @@ const updateIssueStatus = async (req, res) => {
     }
 
     // Prepare the update object
-    const updateData = { status };
+    const updateData = { 
+      status,
+      reason,
+      remark
+    };
 
     // If the status is "Completed", update the CompleteDate field
     if (status === "Completed") {
@@ -235,8 +241,34 @@ const updateIssueStatus = async (req, res) => {
       return res.status(404).json({ success: false, error: 'Issue not found' });
     }
 
+    // Send email notification
+    try {
+      const emailResult = await EmailService.sendStatusUpdateEmail(
+        req.user.email || 'admin@cityassist.com',
+        {
+          email: updatedIssue.email,
+          name: updatedIssue.name || 'User',
+          title: updatedIssue.title,
+          status: updatedIssue.status,
+          department: updatedIssue.department,
+          city: updatedIssue.city,
+          reason: reason || '',
+          remark: remark || ''
+        }
+      );
+
+      console.log('Email notification result:', emailResult);
+    } catch (emailError) {
+      console.error('Error sending email notification:', emailError);
+      // Continue with the response even if email fails
+    }
+
     // Send the updated issue back to the frontend
-    res.status(200).json({ success: true, message: 'Issue status updated successfully', issue: updatedIssue });
+    res.status(200).json({ 
+      success: true, 
+      message: 'Issue status updated successfully', 
+      issue: updatedIssue 
+    });
 
   } catch (error) {
     console.error('Error updating issue status:', error);
