@@ -1,23 +1,19 @@
-import React, { useState } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from 'react-hot-toast';
 
 
 const STATUS_CONFIGS = {
-  open: { bgColor: "bg-red-100", textColor: "text-red-600", borderColor: "border-red-300" },
-  "in progress": { bgColor: "bg-orange-100", textColor: "text-orange-600", borderColor: "border-orange-300" },
-  inprogress: { bgColor: "bg-orange-100", textColor: "text-orange-600", borderColor: "border-orange-300" },
-  resolved: { bgColor: "bg-green-100", textColor: "text-green-600", borderColor: "border-green-300" },
-  completed: { bgColor: "bg-green-100", textColor: "text-green-600", borderColor: "border-green-300" },
+  pending: { bgColor: "bg-yellow-100", textColor: "text-yellow-600", borderColor: "border-yellow-300" },
   accepted: { bgColor: "bg-blue-100", textColor: "text-blue-600", borderColor: "border-blue-300" },
-  rejected: { bgColor: "bg-gray-100", textColor: "text-gray-600", borderColor: "border-gray-300" },
+  rejected: { bgColor: "bg-red-100", textColor: "text-red-600", borderColor: "border-red-300" },
+  completed: { bgColor: "bg-green-100", textColor: "text-green-600", borderColor: "border-green-300" },
+  hold: { bgColor: "bg-gray-100", textColor: "text-gray-600", borderColor: "border-gray-300" },
 };
 
 const IssueCard = ({ issue, handleStatusChange }) => {
   const navigate = useNavigate();
-
-  const [votes, setVotes] = useState(issue.votes || 0);
 
   const getStatusConfig = (status) => {
     const normalizedStatus = status?.toLowerCase() || "open";
@@ -28,16 +24,15 @@ const IssueCard = ({ issue, handleStatusChange }) => {
       const token = localStorage.getItem('token');
       console.log('🔄 Updating status:', { issueId, newStatus });
 
-      const response = await fetch(`https://cityassist-backend.onrender.com/api/issues/${issueId}`, {
+      const response = await fetch(`https://cityassist-backend.onrender.com/admin/updateIssueStatus`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          status: newStatus,
-          reason: `Status updated to ${newStatus}`,
-          remark: `Updated by admin at ${new Date().toLocaleString()}`
+          issueId,
+          status: newStatus
         })
       });
 
@@ -65,23 +60,6 @@ const IssueCard = ({ issue, handleStatusChange }) => {
 
   const navigateToIssueDetails = () => {
     navigate(`/adminDetails/${issue._id}`);
-  };
-
-  const handleVote = async (voteType) => {
-    try {
-      const response = await fetch(`https://cityassist-backend.onrender.com/api/issues/${issue._id}/vote`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ voteType }),
-      });
-
-      if (response.ok) {
-        const updatedIssue = await response.json();
-        setVotes(updatedIssue.votes);
-      }
-    } catch (error) {
-      console.error("Error updating vote:", error);
-    }
   };
 
   const statusConfig = getStatusConfig(issue.status);
@@ -116,34 +94,39 @@ const IssueCard = ({ issue, handleStatusChange }) => {
         <p className="text-sm text-gray-700 line-clamp-2 mt-4">{issue.description || "No description provided"}</p>
       </div>
 
-      {/* Voting Section */}
-      <div className="mt-4 flex justify-between items-center">
-        <div className="flex space-x-4">
-          <span className="text-green-600">
-            👍 {issue.upvotes || 0}
-          </span>
-          <span className="text-red-600">
-            👎 {issue.downvotes || 0}
-          </span>
-        </div>
-        <div className="text-blue-600 font-semibold">
-          Priority: {issue.priority || 0}
+      {/* Vote Display Section */}
+      <div className="px-6 pb-4">
+        <div className="flex justify-between items-center">
+          <div className="flex space-x-4">
+            <span className="text-green-600">
+              👍 {issue.upvotes || 0}
+            </span>
+            <span className="text-red-600">
+              👎 {issue.downvotes || 0}
+            </span>
+          </div>
+          <div className="text-blue-600 font-semibold">
+            Priority: {issue.priority || 0}
+          </div>
         </div>
       </div>
+
       {/* Status Change Section */}
-      <div className="px-6 py-4 border-t border-gray-100">
-        <select
-          value={issue.status || "Open"}
-          onChange={(e) => onStatusUpdate(issue._id, e.target.value)}
-          className={`w-full p-2 text-sm border rounded ${statusConfig.textColor} ${statusConfig.borderColor} focus:ring-2 focus:ring-opacity-50 transition-all`}
-        >
-          <option value="Open">Open</option>
-          <option value="In Progress">In Progress</option>
-          <option value="Resolved">Resolved</option>
-          <option value="Accepted">Accepted</option>
-          <option value="Rejected">Rejected</option>
-        </select>
-      </div>
+      {handleStatusChange && (
+        <div className="px-6 py-4 border-t border-gray-100">
+          <select
+            value={issue.status || "Open"}
+            onChange={(e) => onStatusUpdate(issue._id, e.target.value)}
+            className={`w-full p-2 text-sm border rounded ${statusConfig.textColor} ${statusConfig.borderColor} focus:ring-2 focus:ring-opacity-50 transition-all`}
+          >
+            <option value="Pending">Pending</option>
+            <option value="Accepted">Accepted</option>
+            <option value="Rejected">Rejected</option>
+            <option value="Completed">Completed</option>
+            <option value="Hold">Hold</option>
+          </select>
+        </div>
+      )}
     </motion.div>
   );
 };
